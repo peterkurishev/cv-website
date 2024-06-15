@@ -1,0 +1,96 @@
+apiVersion: cert-manager.io/v1
+kind: ClusterIssuer
+metadata:
+  # Name your ClusterIssuer resource
+  name: letsencrypt-dswz-certificate
+  # Add the cert-manager namespace you created earlier
+  namespace: cert-manager
+spec:
+  acme:
+    # Let's Encrypt ACME server (The server URL)
+    server: https://acme-v02.api.letsencrypt.org/directory
+    # Replace this with your email to be associated with the Let's Encrypt account
+    email: peter@kurishev.ru
+    privateKeySecretRef:
+      # Name a secret key you'll use on Ingress to access ClusterIssuer
+      # This key's name tells ClusterIssuer where the private key is stored
+      name: dswz.letsencrypt.key.tls
+    solvers:
+    - selector: {}
+      # Add http01 challenge for key validation
+      http01:
+        ingress:
+          # Specify the Ingress controller that will use the HTTP01 challenges
+          class: traefik
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: dswz-service
+spec:
+  selector:
+    app: dswz
+  ports:
+  - protocol: "TCP"
+    port: 80
+    targetPort: 80
+  type: LoadBalancer
+
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: dswz
+spec:
+  selector:
+    matchLabels:
+      app: dswz
+  replicas: 1
+  template:
+    metadata:
+      labels:
+        app: dswz
+    spec:
+      containers:
+      - name: dswz
+        image: gitlab.cleverbots.ru:4567/peter.kurishev/dswz:latest
+        ports:
+        - containerPort: 80
+        imagePullPolicy: Always
+
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+# Name the Ingress resource
+  name: dswz-ingress
+  annotations:
+    # Use Traefik as the Ingress controller
+    kubernetes.io/ingress.class: traefik
+    # Add Cert-Manager SSL certificates as the name of the ClusterIssuer resource
+    cert-manager.io/cluster-issuer: letsencrypt-certificate
+spec:
+  # TLS configuration for HTTPS
+  tls:
+    # TLS secretName used on ClusterIssuer
+    - secretName: dswz.letsencrypt.key.tls
+      hosts:
+        # Replace with your domain name
+        - dswz.ru
+  # Create Ingress routing rules
+  rules:
+  # Replace with your domain name
+  - host: dswz.ru
+    http:
+      paths:
+      - path: /
+        pathType: Prefix
+        backend:
+          service:
+           # Name of your service resource
+            name: dswz-service
+            port:
+             # Port number to forward traffic to
+              number: 80
+
