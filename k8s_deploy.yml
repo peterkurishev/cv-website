@@ -58,8 +58,8 @@ spec:
         ports:
         - containerPort: 80
         imagePullPolicy: Always
-	imagePullSecrets:
-	- name: regcred
+      imagePullSecrets:
+      - name: regcred
 
 ---
 apiVersion: networking.k8s.io/v1
