@@ -54,10 +54,12 @@ spec:
     spec:
       containers:
       - name: dswz
-        image: gitlab.cleverbots.ru:4567/peter.kurishev/dswz:latest
+        image: cr.selcloud.ru/dswz/dswz:latest
         ports:
         - containerPort: 80
         imagePullPolicy: Always
+      imagePullSecrets:
+      - name: regcred
 
 ---
 apiVersion: networking.k8s.io/v1
